@@ -1,6 +1,8 @@
 package com.atguigu.gmall.pms.service.impl;
 
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -25,6 +27,24 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         );
 
         return new PageVo(page);
+    }
+
+    @Override
+    public List<CategoryEntity> queryCategoriesByLevelOrPid(Integer level, Long pid) {
+
+        QueryWrapper<CategoryEntity> wrapper = new QueryWrapper<>();
+
+        // 1.判断层级是否为0
+        if (level != 0) {
+            wrapper.eq("cat_level", level);
+        }
+
+        // 2.判断pid是否为空
+        if (pid != null) {
+            wrapper.eq("parent_cid", pid);
+        }
+
+        return this.list(wrapper);
     }
 
 }
