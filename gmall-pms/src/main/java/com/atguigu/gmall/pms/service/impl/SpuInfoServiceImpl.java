@@ -1,5 +1,7 @@
 package com.atguigu.gmall.pms.service.impl;
 
+import com.atguigu.gmall.pms.vo.SpuInfoVO;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -25,6 +27,32 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         );
 
         return new PageVo(page);
+    }
+
+    @Override
+    public PageVo querySpuByCidPage(QueryCondition condition, Long cid) {
+
+        QueryWrapper<SpuInfoEntity> wrapper = new QueryWrapper<>();
+
+        // 分类id判断
+        if (cid != 0) {
+            wrapper.eq("catalog_id", cid);
+        }
+
+        // 关键字判断
+        String key = condition.getKey();
+        if (StringUtils.isNotBlank(key)) {
+            wrapper.and(t -> t.eq("id", key).or().like("spu_name", key));
+        }
+
+        IPage<SpuInfoEntity> page = this.page(new Query<SpuInfoEntity>().getPage(condition), wrapper);
+
+        return new PageVo(page);
+    }
+
+    @Override
+    public void bigSave(SpuInfoVO spuInfoVO) {
+
     }
 
 }

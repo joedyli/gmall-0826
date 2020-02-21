@@ -1,1 +1,3 @@
-
+logging:
+  level:
+    com.atguigu.gmall: debug
