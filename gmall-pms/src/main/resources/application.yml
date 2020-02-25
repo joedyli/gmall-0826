@@ -1,3 +1,7 @@
 logging:
   level:
     com.atguigu.gmall: debug
+spring:
+  datasource:
+    url:
+    driver-class-name:

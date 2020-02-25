@@ -8,14 +8,18 @@ import com.atguigu.gmall.pms.vo.BaseAttrValueVO;
 import com.atguigu.gmall.pms.vo.SkuInfoVO;
 import com.atguigu.gmall.pms.vo.SpuInfoVO;
 import com.atguigu.gmall.sms.vo.SkuSaleVO;
+import io.seata.spring.annotation.GlobalTransactional;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -85,9 +89,9 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         return new PageVo(page);
     }
 
-    @Transactional
+    @GlobalTransactional
     @Override
-    public void bigSave(SpuInfoVO spuInfoVO) {
+    public void bigSave(SpuInfoVO spuInfoVO) throws FileNotFoundException {
 
         // 1.保存spu相关的信息（spuInfo spuInfoDesc productAttrValue）
         // 1.1.保存spuInfo信息
@@ -99,10 +103,17 @@ public class SpuInfoServiceImpl extends ServiceImpl<SpuInfoDao, SpuInfoEntity> i
         // 1.3.保存基本属性（productAttrValue）
         saveBaseAttrValue(spuInfoVO, spuId);
 
+//        try {
+//            TimeUnit.SECONDS.sleep(4);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+
         // 2.保存sku相关的信息（需要spuId）
         saveSku(spuInfoVO, spuId);
 
-        int i = 1 / 0;
+//        int i = 1 / 0;
+//        FileInputStream stream = new FileInputStream("xxx");
     }
 
     private void saveSku(SpuInfoVO spuInfoVO, Long spuId) {
