@@ -42,6 +42,6 @@ public class GoodsVO {
     @Field(type = FieldType.Keyword)
     private String categoryName;
 
-    @Field(type = FieldType.Nested) // 嵌套类型
+    @Field(type = FieldType.Nested)
     private List<SearchAttrVO> attrs;
 }
