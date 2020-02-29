@@ -27,3 +27,9 @@ spring:
           uri: lb://oms-service
           predicates:
             - Path=/oms/**
+        - id: index-route
+          uri: lb://index-service
+          predicates:
+            - Path=/api/index/**
+          filters:
+            - RewritePath=/api(?<segment>/?.*), $\{segment}
