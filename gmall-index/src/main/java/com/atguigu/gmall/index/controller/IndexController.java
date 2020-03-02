@@ -32,4 +32,41 @@ public class IndexController {
         List<CategoryVO> categoryVOS = this.indexService.queryLvl2WithSubByPid(pid);
         return Resp.ok(categoryVOS);
     }
+
+    @GetMapping("test/lock")
+    public Resp<Object> testLock(){
+        this.indexService.testLock();
+
+        return Resp.ok(null);
+    }
+
+    @GetMapping("test/read")
+    public Resp<Object> testRead(){
+        this.indexService.testRead();
+
+        return Resp.ok("读取成功了");
+    }
+
+    @GetMapping("test/write")
+    public Resp<Object> testWrite(){
+        this.indexService.testWrite();
+
+        return Resp.ok("写入成功了");
+    }
+
+
+    @GetMapping("test/latch")
+    public Resp<Object> testLatch() throws InterruptedException {
+        this.indexService.testLatch();
+
+        return Resp.ok("班长锁门。。。。");
+    }
+
+    @GetMapping("test/countdown")
+    public Resp<Object> testCountDown(){
+        this.indexService.testCountDown();
+
+        return Resp.ok("出来一个学生。。。。");
+    }
+
 }
