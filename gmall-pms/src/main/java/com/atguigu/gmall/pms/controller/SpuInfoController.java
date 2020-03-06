@@ -12,6 +12,8 @@ import com.atguigu.core.bean.Resp;
 import com.atguigu.gmall.pms.vo.SpuInfoVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +37,9 @@ import com.atguigu.gmall.pms.service.SpuInfoService;
 public class SpuInfoController {
     @Autowired
     private SpuInfoService spuInfoService;
+
+    @Autowired
+    private AmqpTemplate amqpTemplate;
 
     @GetMapping
     public Resp<PageVo> querySpuByCidPage(QueryCondition condition, @RequestParam(value = "catId", defaultValue = "0")Long cid){
@@ -99,6 +104,7 @@ public class SpuInfoController {
     public Resp<Object> update(@RequestBody SpuInfoEntity spuInfo){
 		spuInfoService.updateById(spuInfo);
 
+		this.amqpTemplate.convertAndSend("PMS-SPU-EXCHANGE", "item.update", spuInfo.getId());
         return Resp.ok(null);
     }
 
