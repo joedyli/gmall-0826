@@ -1,5 +1,5 @@
 server:
-  port: 8090
+  port: 8093
 spring:
   cloud:
     nacos:
@@ -7,3 +7,14 @@ spring:
         server-addr: 127.0.0.1:8848
   redis:
     host: 172.16.116.100
+  rabbitmq:
+    host: 172.16.116.100
+    virtual-host: /fengge
+    username: fengge
+    password: fengge
+auth:
+  jwt:
+    publicKeyPath: D:\\project-0826\\secret\\rsa.pub
+    cookieName: GMALL_TOKEN
+    userKeyName: userKey
+    expireTime: 2592000
