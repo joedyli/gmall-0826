@@ -1,14 +1,11 @@
 package com.atguigu.gmall.cart.controller;
 
 import com.atguigu.core.bean.Resp;
-import com.atguigu.gmall.cart.interceptor.LoginInterceptor;
 import com.atguigu.gmall.cart.pojo.Cart;
-import com.atguigu.gmall.cart.pojo.UserInfo;
 import com.atguigu.gmall.cart.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -29,6 +26,12 @@ public class CartController {
     @GetMapping
     public Resp<List<Cart>> queryCarts(){
         List<Cart> carts = this.cartService.queryCarts();
+        return Resp.ok(carts);
+    }
+
+    @GetMapping("check/{userId}")
+    public Resp<List<Cart>> queryCheckedCarts(@PathVariable("userId")Long userId){
+        List<Cart> carts = this.cartService.queryCheckedCarts(userId);
         return Resp.ok(carts);
     }
 
