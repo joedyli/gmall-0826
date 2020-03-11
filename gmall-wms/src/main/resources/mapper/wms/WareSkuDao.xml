@@ -18,11 +18,11 @@
     </select>
 
     <update id="lockStock">
-        update wms_ware_sku set stock_locked + #{count} where id = #{id}
+        update wms_ware_sku set stock_locked = stock_locked + #{count} where id = #{id}
     </update>
 
     <update id="unlockStock">
-        update wms_ware_sku set stock_locked - #{count} where id = #{id}
+        update wms_ware_sku set stock_locked = stock_locked - #{count} where id = #{id}
     </update>
 
 </mapper>

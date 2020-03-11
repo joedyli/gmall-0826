@@ -1,30 +1,37 @@
 package com.atguigu.gmall.order.service;
 
+import com.alibaba.fastjson.JSON;
 import com.atguigu.core.bean.Resp;
 import com.atguigu.core.bean.UserInfo;
 import com.atguigu.core.exception.OrderException;
 import com.atguigu.gmall.cart.pojo.Cart;
+import com.atguigu.gmall.oms.entity.OrderEntity;
 import com.atguigu.gmall.order.feign.*;
 import com.atguigu.gmall.order.interceptor.LoginInterceptor;
 import com.atguigu.gmall.order.vo.OrderConfirmVO;
-import com.atguigu.gmall.order.vo.OrderItemVO;
-import com.atguigu.gmall.order.vo.OrderSubmitVO;
+import com.atguigu.gmall.oms.vo.OrderItemVO;
+import com.atguigu.gmall.oms.vo.OrderSubmitVO;
 import com.atguigu.gmall.pms.entity.SkuInfoEntity;
 import com.atguigu.gmall.pms.entity.SkuSaleAttrValueEntity;
 import com.atguigu.gmall.sms.vo.ItemSaleVO;
 import com.atguigu.gmall.ums.entity.MemberEntity;
 import com.atguigu.gmall.ums.entity.MemberReceiveAddressEntity;
 import com.atguigu.gmall.wms.entity.WareSkuEntity;
+import com.atguigu.gmall.wms.vo.SkuLockVO;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -49,12 +56,18 @@ public class OrderService {
     private GmallUmsClient umsClient;
 
     @Autowired
+    private GmallOmsClient omsClient;
+
+    @Autowired
     private StringRedisTemplate redisTemplate;
 
     private static final String KEY_PREFIX = "order:token:";
 
     @Autowired
     private ThreadPoolExecutor threadPoolExecutor;
+
+    @Autowired
+    private AmqpTemplate amqpTemplate;
 
     /**
      * 订单确认页
@@ -158,6 +171,7 @@ public class OrderService {
     }
 
     public void submit(OrderSubmitVO submitVO) {
+
         // 1.防重
         String orderToken = submitVO.getOrderToken();
         String script = "if redis.call('get', KEYS[1]) == ARGV[1] " +
@@ -188,11 +202,41 @@ public class OrderService {
         }
 
         // 3.验库存并锁库存
+        List<SkuLockVO> lockVOS = items.stream().map(item -> {
+            SkuLockVO skuLockVO = new SkuLockVO();
+            skuLockVO.setSkuId(item.getSkuId());
+            skuLockVO.setCount(item.getCount().intValue());
+            skuLockVO.setOrderToken(submitVO.getOrderToken());
+            return skuLockVO;
+        }).collect(Collectors.toList());
+        Resp<List<SkuLockVO>> skuLockResp = this.wmsClient.checkAndLock(lockVOS);
+        List<SkuLockVO> skuLockVOS = skuLockResp.getData();
+        if (!CollectionUtils.isEmpty(skuLockVOS)){
+            throw new OrderException("手慢了，商品库存不足：" + JSON.toJSONString(skuLockVOS));
+        }
 
+        // order：此时服务器宕机
 
         // 4.下单
+        UserInfo userInfo = LoginInterceptor.getUserInfo();
+        Long userId = userInfo.getUserId();
+        submitVO.setUserId(userId);
+        try {
+            this.omsClient.saveOrder(submitVO); // feign（请求，响应）超时
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 如果订单创建失败，立马释放库存 TODO
+            this.amqpTemplate.convertAndSend("ORDER-EXCHANGE", "wms.unlock", orderToken);
+            // 如果订单创建成功，响应失败，发送消息标记为无效订单
+            this.amqpTemplate.convertAndSend("ORDER-EXCHANGE", "oms.close", orderToken);
+        }
 
-        // 5.删除购物车
-
+        // 5.删除购物车。异步发送消息给购物车，删除购物车
+        Map<String, Object> map = new HashMap<>();
+        map.put("userId", userId);
+        List<Long> skuIds = items.stream().map(OrderItemVO::getSkuId).collect(Collectors.toList());
+        map.put("skuIds", JSON.toJSONString(skuIds));
+        this.amqpTemplate.convertAndSend("ORDER-EXCHANGE", "cart.delete", map);
     }
+
 }
